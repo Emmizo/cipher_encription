@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Cipher Tool</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg: #0f172a;
+        --bg-card: #020617;
+        --accent: #38bdf8;
+        --accent-soft: rgba(56, 189, 248, 0.1);
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --error: #f97373;
+      }
+      * {
+        box-sizing: border-box;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+          sans-serif;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at top, #1e293b 0, #020617 55%);
+        color: var(--text);
+      }
+      .card {
+        width: 100%;
+        max-width: 900px;
+        background: linear-gradient(135deg, #020617, #020617);
+        border-radius: 20px;
+        padding: 24px 28px 26px;
+        box-shadow: 0 24px 70px rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+      }
+      h1 {
+        font-size: 1.7rem;
+        margin: 0 0 4px;
+        letter-spacing: 0.03em;
+      }
+      .sub {
+        margin: 0 0 16px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      form {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+        gap: 18px;
+      }
+      @media (max-width: 780px) {
+        form {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      .field {
+        margin-bottom: 10px;
+      }
+      label {
+        display: block;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 6px;
+        color: var(--muted);
+      }
+      textarea,
+      input,
+      select {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: radial-gradient(circle at top left, #020617, #020617);
+        color: var(--text);
+        padding: 9px 10px;
+        font-size: 0.9rem;
+        outline: none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease,
+          background 0.15s ease;
+      }
+      textarea {
+        min-height: 140px;
+        resize: vertical;
+      }
+      input:focus,
+      select:focus,
+      textarea:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.3);
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+      }
+      .row > .field {
+        flex: 1;
+      }
+      .hint {
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-top: 3px;
+      }
+      .buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 8px;
+      }
+      button {
+        border-radius: 999px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: transform 0.08s ease, box-shadow 0.08s ease,
+          background 0.16s ease;
+      }
+      button.primary {
+        background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+        color: #0b1120;
+        box-shadow: 0 10px 30px rgba(56, 189, 248, 0.45);
+      }
+      button.secondary {
+        background: rgba(15, 23, 42, 0.9);
+        color: var(--muted);
+        border: 1px solid rgba(148, 163, 184, 0.4);
+      }
+      button:hover {
+        transform: translateY(-1px);
+      }
+      button:active {
+        transform: translateY(0);
+        box-shadow: none;
+      }
+      .result-panel {
+        border-radius: 14px;
+        padding: 12px 12px 10px;
+        background: radial-gradient(circle at top left, #020617, #020617);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      .result-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .result-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+      }
+      .pill {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(56, 189, 248, 0.5);
+        color: var(--accent);
+        background: rgba(8, 47, 73, 0.6);
+      }
+      .result-box {
+        flex: 1;
+        padding: 8px;
+        border-radius: 10px;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        font-size: 0.92rem;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-y: auto;
+        max-height: 180px;
+      }
+      .error {
+        margin-top: 8px;
+        font-size: 0.8rem;
+        color: var(--error);
+      }
+      .footer {
+        margin-top: 14px;
+        font-size: 0.78rem;
+        color: var(--muted);
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .footer span.highlight {
+        color: var(--accent);
+      }
+      .link {
+        color: var(--accent);
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .link:hover {
+        text-decoration: underline;
+      }
+      .help {
+        margin-top: 6px;
+        font-size: 0.75rem;
+        color: var(--muted);
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Classical Cipher Lab</h1>
+      <p class="sub">
+        Encrypt and decrypt text with four classic ciphers. Use the same key
+        and cipher for both steps to get back the original word (except for
+        padding letters like X in Hill/Playfair).
+      </p>
+
+      <form method="post">
+        <div>
+          <div class="field">
+            <label for="text">Text</label>
+            <textarea
+              id="text"
+              name="text"
+              placeholder="Type your plaintext or ciphertext here..."
+              required
+            >{{ text_value }}</textarea>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="cipher">Cipher</label>
+              <select id="cipher" name="cipher" onchange="updateCipherHelp()">
+                <option value="caesar" {% if cipher_value == 'caesar' %}selected{% endif %}>Caesar</option>
+                <option value="hill" {% if cipher_value == 'hill' %}selected{% endif %}>Hill (2×2)</option>
+                <option value="vigenere" {% if cipher_value == 'vigenere' %}selected{% endif %}>Vigenère</option>
+                <option value="playfair" {% if cipher_value == 'playfair' %}selected{% endif %}>Playfair</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="mode">Mode</label>
+              <select id="mode" name="mode">
+                <option value="encrypt" {% if mode_value == 'encrypt' %}selected{% endif %}>Encrypt</option>
+                <option value="decrypt" {% if mode_value == 'decrypt' %}selected{% endif %}>Decrypt</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="key">Key</label>
+            <input
+              id="key"
+              name="key"
+              value="{{ key_value }}"
+              placeholder="Key (e.g. 3, 3 3 2 5, LEMON, MONARCHY)"
+              required
+            />
+            <div class="hint" id="key-hint"></div>
+          </div>
+
+          <div class="buttons">
+            <button class="primary" type="submit">
+              Run cipher
+            </button>
+            <button
+              class="secondary"
+              type="button"
+              onclick="document.getElementById('text').value='';document.getElementById('key').value='';"
+            >
+              Clear
+            </button>
+            <button
+              class="secondary"
+              type="button"
+              onclick="document.getElementById('text').value=document.getElementById('result').innerText.trim();document.getElementById('mode').value='decrypt';"
+            >
+              Use output → decrypt
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div class="result-panel">
+            <div class="result-panel-header">
+              <span class="result-label">Output</span>
+              <span class="pill">Result</span>
+            </div>
+            <div class="result-box" id="result">
+              {{ result if result else 'Your encrypted or decrypted text will appear here.' }}
+            </div>
+            {% if error %}
+            <div class="error">{{ error }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </form>
+
+      <div class="footer">
+        <span>
+          Supports <span class="highlight">Caesar</span>,
+          <span class="highlight">Hill (2×2)</span>,
+          <span class="highlight">Vigenère</span>, and
+          <span class="highlight">Playfair</span>.
+        </span>
+        <span class="link" onclick="toggleHelp()">Key help</span>
+      </div>
+      <div id="help" class="help">
+        <strong>Key field:</strong> it is the secret that controls the cipher.
+        Use the same key and cipher to decrypt what you encrypted.
+      </div>
+    </div>
+    <script>
+      function toggleHelp() {
+        const el = document.getElementById("help");
+        el.style.display = el.style.display === "block" ? "none" : "block";
+      }
+
+      function updateCipherHelp() {
+        const select = document.getElementById("cipher");
+        const hint = document.getElementById("key-hint");
+        if (!select || !hint) return;
+        const value = select.value;
+        if (value === "caesar") {
+          hint.innerHTML =
+            'Caesar: key is an <strong>integer shift</strong>. Example: <strong>3</strong>.';
+        } else if (value === "hill") {
+          hint.innerHTML =
+            'Hill (2×2): key is <strong>4 integers</strong> (matrix). Example: <strong>3 3 2 5</strong>.';
+        } else if (value === "vigenere") {
+          hint.innerHTML =
+            'Vigenère: key is an <strong>alphabetic word</strong>. Example: <strong>LEMON</strong>.';
+        } else if (value === "playfair") {
+          hint.innerHTML =
+            'Playfair: key is an <strong>alphabetic word</strong>. Example: <strong>MONARCHY</strong>.';
+        } else {
+          hint.textContent =
+            "Choose a cipher to see how the key should look.";
+        }
+      }
+
+      window.addEventListener("DOMContentLoaded", updateCipherHelp);
+    </script>
+  </body>
+</html>
