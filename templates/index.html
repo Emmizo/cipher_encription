@@ -216,11 +216,11 @@
   </head>
   <body>
     <div class="card">
-      <h1>Classical Cipher Lab</h1>
+      <h1>Classical & Modern Cipher Lab</h1>
       <p class="sub">
-        Encrypt and decrypt text with four classic ciphers. Use the same key
-        and cipher for both steps to get back the original word (except for
-        padding letters like X in Hill/Playfair).
+        Encrypt and decrypt text with classic and modern ciphers. Use the same
+        key and cipher for both steps to get back the original word (except for
+        padding letters like X in Hill/Playfair and block cipher padding).
       </p>
 
       <form method="post">
@@ -243,6 +243,10 @@
                 <option value="hill" {% if cipher_value == 'hill' %}selected{% endif %}>Hill (2×2)</option>
                 <option value="vigenere" {% if cipher_value == 'vigenere' %}selected{% endif %}>Vigenère</option>
                 <option value="playfair" {% if cipher_value == 'playfair' %}selected{% endif %}>Playfair</option>
+                <option value="des" {% if cipher_value == 'des' %}selected{% endif %}>DES</option>
+                <option value="aes" {% if cipher_value == 'aes' %}selected{% endif %}>AES</option>
+                <option value="blowfish" {% if cipher_value == 'blowfish' %}selected{% endif %}>Blowfish</option>
+                <option value="rsa" {% if cipher_value == 'rsa' %}selected{% endif %}>RSA (toy)</option>
               </select>
             </div>
 
@@ -261,7 +265,7 @@
               id="key"
               name="key"
               value="{{ key_value }}"
-              placeholder="Key (e.g. 3, 3 3 2 5, LEMON, MONARCHY)"
+              placeholder="Key (e.g. 3, 3 3 2 5, LEMON, MONARCHY, passphrase, 61 53 17)"
               required
             />
             <div class="hint" id="key-hint"></div>
@@ -308,8 +312,12 @@
         <span>
           Supports <span class="highlight">Caesar</span>,
           <span class="highlight">Hill (2×2)</span>,
-          <span class="highlight">Vigenère</span>, and
-          <span class="highlight">Playfair</span>.
+          <span class="highlight">Vigenère</span>,
+          <span class="highlight">Playfair</span>,
+          <span class="highlight">DES</span>,
+          <span class="highlight">AES</span>,
+          <span class="highlight">Blowfish</span>, and
+          <span class="highlight">toy RSA</span>.
         </span>
         <span class="link" onclick="toggleHelp()">Key help</span>
       </div>
@@ -341,6 +349,12 @@
         } else if (value === "playfair") {
           hint.innerHTML =
             'Playfair: key is an <strong>alphabetic word</strong>. Example: <strong>MONARCHY</strong>.';
+        } else if (value === "des" || value === "aes" || value === "blowfish") {
+          hint.innerHTML =
+            'DES/AES/Blowfish: key is a <strong>passphrase</strong>. Encryption outputs a <strong>hex string</strong>; paste that hex back with the same key to decrypt.';
+        } else if (value === "rsa") {
+          hint.innerHTML =
+            'Toy RSA: key is <strong>three integers</strong> <code>p q e</code>. Example: <strong>61 53 17</strong>. Encryption outputs space‑separated integers; use the same key to decrypt.';
         } else {
           hint.textContent =
             "Choose a cipher to see how the key should look.";

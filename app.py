@@ -1,6 +1,9 @@
 from flask import Flask, render_template, request
 import string
 import numpy as np
+from Crypto.Cipher import AES, DES, Blowfish
+from Crypto.Hash import SHA256
+from Crypto.Util.Padding import pad, unpad
 
 app = Flask(__name__)
 
@@ -252,6 +255,158 @@ def playfair_decrypt(ciphertext, key):
     return ''.join(cleaned)
 
 
+# ---------------- Modern block ciphers: DES, AES, Blowfish ----------------
+def _derive_key(key_str, algorithm):
+    """
+    Derive a fixed‑size binary key from an arbitrary passphrase.
+    This is purely for demo purposes and is NOT secure practice.
+    """
+    digest = SHA256.new(key_str.encode("utf-8")).digest()
+    if algorithm == "aes":
+        # 32‑byte key (AES‑256)
+        return digest
+    elif algorithm == "des":
+        # 8‑byte key
+        return digest[:8]
+    elif algorithm == "blowfish":
+        # 16‑byte key (Blowfish supports 4‑56 bytes)
+        return digest[:16]
+    else:
+        raise ValueError("Unsupported algorithm for key derivation.")
+
+
+def _symmetric_encrypt(plaintext, key_str, algorithm):
+    data = plaintext.encode("utf-8")
+    if algorithm == "aes":
+        key = _derive_key(key_str, "aes")
+        cipher = AES.new(key, AES.MODE_ECB)
+        block_size = AES.block_size
+    elif algorithm == "des":
+        key = _derive_key(key_str, "des")
+        cipher = DES.new(key, DES.MODE_ECB)
+        block_size = DES.block_size
+    elif algorithm == "blowfish":
+        key = _derive_key(key_str, "blowfish")
+        cipher = Blowfish.new(key, Blowfish.MODE_ECB)
+        block_size = Blowfish.block_size
+    else:
+        raise ValueError("Unknown block cipher.")
+
+    enc_bytes = cipher.encrypt(pad(data, block_size))
+    # Represent as hex so it fits nicely in the text box
+    return enc_bytes.hex()
+
+
+def _symmetric_decrypt(ciphertext_hex, key_str, algorithm):
+    try:
+        enc = bytes.fromhex(ciphertext_hex.strip())
+    except ValueError:
+        raise ValueError("Ciphertext must be a hexadecimal string produced by the encrypt step.")
+
+    if algorithm == "aes":
+        key = _derive_key(key_str, "aes")
+        cipher = AES.new(key, AES.MODE_ECB)
+        block_size = AES.block_size
+    elif algorithm == "des":
+        key = _derive_key(key_str, "des")
+        cipher = DES.new(key, DES.MODE_ECB)
+        block_size = DES.block_size
+    elif algorithm == "blowfish":
+        key = _derive_key(key_str, "blowfish")
+        cipher = Blowfish.new(key, Blowfish.MODE_ECB)
+        block_size = Blowfish.block_size
+    else:
+        raise ValueError("Unknown block cipher.")
+
+    try:
+        data = unpad(cipher.decrypt(enc), block_size)
+    except ValueError:
+        raise ValueError("Invalid padding or key for this ciphertext.")
+
+    return data.decode("utf-8", errors="replace")
+
+
+def des_encrypt(plaintext, key_str):
+    return _symmetric_encrypt(plaintext, key_str, "des")
+
+
+def des_decrypt(ciphertext, key_str):
+    return _symmetric_decrypt(ciphertext, key_str, "des")
+
+
+def aes_encrypt(plaintext, key_str):
+    return _symmetric_encrypt(plaintext, key_str, "aes")
+
+
+def aes_decrypt(ciphertext, key_str):
+    return _symmetric_decrypt(ciphertext, key_str, "aes")
+
+
+def blowfish_encrypt(plaintext, key_str):
+    return _symmetric_encrypt(plaintext, key_str, "blowfish")
+
+
+def blowfish_decrypt(ciphertext, key_str):
+    return _symmetric_decrypt(ciphertext, key_str, "blowfish")
+
+
+# ---------------- Toy RSA (for demonstration only) ----------------
+def parse_rsa_key(key_str):
+    """
+    Expect key as three integers p, q, e separated by spaces or commas, e.g. '61 53 17'.
+    This builds a *toy* RSA system: n = p*q, phi = (p-1)(q-1), d = e^{-1} mod phi.
+    Not secure and only for small demo primes.
+    """
+    parts = key_str.replace(",", " ").split()
+    if len(parts) != 3:
+        raise ValueError(
+            "RSA key must have exactly 3 integers: p q e, e.g. '61 53 17'."
+        )
+    p, q, e = map(int, parts)
+    if p <= 1 or q <= 1:
+        raise ValueError("p and q must be primes greater than 1 for toy RSA.")
+    n = p * q
+    phi = (p - 1) * (q - 1)
+    if np.gcd(e, phi) != 1:
+        raise ValueError("e must be coprime with (p-1)(q-1).")
+    d = modinv(e, phi)
+    return n, e, d
+
+
+def rsa_encrypt(plaintext, key_str):
+    """
+    Very small toy RSA applied per‑character.
+    Output is space‑separated integers.
+    """
+    n, e, _ = parse_rsa_key(key_str)
+    nums = []
+    for ch in plaintext:
+        m = ord(ch)
+        if m >= n:
+            raise ValueError(
+                "For this toy RSA, n must be larger than all character codes in the message."
+            )
+        c = pow(m, e, n)
+        nums.append(str(c))
+    return " ".join(nums)
+
+
+def rsa_decrypt(ciphertext, key_str):
+    """
+    Inverse of rsa_encrypt: takes space‑separated integers and returns text.
+    """
+    n, _, d = parse_rsa_key(key_str)
+    parts = ciphertext.replace(",", " ").split()
+    chars = []
+    for token in parts:
+        if not token.strip():
+            continue
+        c = int(token)
+        m = pow(c, d, n)
+        chars.append(chr(m))
+    return "".join(chars)
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = ""
@@ -267,13 +422,53 @@ def index():
         mode = request.form.get("mode", "encrypt")
         try:
             if cipher == "caesar":
-                result = caesar_encrypt(text, key) if mode == "encrypt" else caesar_decrypt(text, key)
+                result = (
+                    caesar_encrypt(text, key)
+                    if mode == "encrypt"
+                    else caesar_decrypt(text, key)
+                )
             elif cipher == "hill":
-                result = hill_encrypt(text, key) if mode == "encrypt" else hill_decrypt(text, key)
+                result = (
+                    hill_encrypt(text, key)
+                    if mode == "encrypt"
+                    else hill_decrypt(text, key)
+                )
             elif cipher == "vigenere":
-                result = vigenere_encrypt(text, key) if mode == "encrypt" else vigenere_decrypt(text, key)
+                result = (
+                    vigenere_encrypt(text, key)
+                    if mode == "encrypt"
+                    else vigenere_decrypt(text, key)
+                )
             elif cipher == "playfair":
-                result = playfair_encrypt(text, key) if mode == "encrypt" else playfair_decrypt(text, key)
+                result = (
+                    playfair_encrypt(text, key)
+                    if mode == "encrypt"
+                    else playfair_decrypt(text, key)
+                )
+            elif cipher == "des":
+                result = (
+                    des_encrypt(text, key)
+                    if mode == "encrypt"
+                    else des_decrypt(text, key)
+                )
+            elif cipher == "aes":
+                result = (
+                    aes_encrypt(text, key)
+                    if mode == "encrypt"
+                    else aes_decrypt(text, key)
+                )
+            elif cipher == "blowfish":
+                result = (
+                    blowfish_encrypt(text, key)
+                    if mode == "encrypt"
+                    else blowfish_decrypt(text, key)
+                )
+            elif cipher == "rsa":
+                result = (
+                    rsa_encrypt(text, key)
+                    if mode == "encrypt"
+                    else rsa_decrypt(text, key)
+                )
         except Exception as e:
             error = str(e)
     return render_template(

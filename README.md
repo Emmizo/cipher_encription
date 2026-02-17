@@ -1,11 +1,15 @@
-# Classical Cipher Web Tool
+# Classical & Modern Cipher Web Tool
 
-This project demonstrates four classical cryptosystems and how they are implemented in code:
+This project demonstrates several cryptosystems and how they are implemented in code:
 
 - **Caesar cipher** (encrypt/decrypt)
 - **Hill cipher** (2×2 matrix, encrypt/decrypt)
 - **Vigenère cipher** (encrypt/decrypt)
 - **Playfair cipher** (encrypt/decrypt)
+- **DES** (encrypt/decrypt, demo via PyCryptodome)
+- **AES** (encrypt/decrypt, demo via PyCryptodome)
+- **Blowfish** (encrypt/decrypt, demo via PyCryptodome)
+- **Toy RSA** (encrypt/decrypt, small educational example)
 
 ## Setup
 
@@ -38,6 +42,12 @@ python app.py
 - **Hill (2×2)**: 4 integers (matrix) separated by spaces/commas, e.g. `3 3 2 5`
 - **Vigenère**: alphabetic word, e.g. `LEMON`
 - **Playfair**: alphabetic word, e.g. `MONARCHY`
+- **DES / AES / Blowfish**: any text **passphrase**.  
+  - Encryption outputs a **hex string** (e.g. `6f2c9a...`).  
+  - To decrypt, paste that hex string back as the text with the **same passphrase**.
+- **Toy RSA**: three integers `p q e`, e.g. `61 53 17`.  
+  - Encryption outputs **space-separated integers** (e.g. `2790 1654 ...`).  
+  - To decrypt, paste those integers back as the text and reuse the same `p q e`.
 
 Non-alphabetic characters in text are preserved where appropriate, but for Hill and Playfair the letters are normalized to uppercase A–Z.
 
@@ -185,6 +195,58 @@ You can say: **“Playfair operates on pairs of letters in a 5×5 key square; en
 
 ---
 
+### 5. DES, AES, Blowfish (block ciphers – demo mode)
+
+- **Idea (conceptual)**  
+  - These are modern **block ciphers** that work on fixed-size blocks of bytes (e.g. 8 or 16 bytes).  
+  - In this demo, the passphrase is hashed with SHA‑256 to get a fixed-size binary key.  
+  - The message is:
+    1. Converted to UTF‑8 bytes.
+    2. **Padded** to a multiple of the block size (PKCS#7 style).
+    3. Encrypted with the chosen block cipher in **ECB mode** (for simplicity).
+    4. Shown as a **hex string** so it fits in the text box.
+
+- **In code (`app.py`)**  
+  - Helper `_derive_key` turns a passphrase into a key for DES/AES/Blowfish.  
+  - `_symmetric_encrypt` / `_symmetric_decrypt` wrap PyCryptodome’s cipher objects and handle padding and hex encoding/decoding.  
+  - Public helpers: `des_encrypt/des_decrypt`, `aes_encrypt/aes_decrypt`, `blowfish_encrypt/blowfish_decrypt`.
+
+You can say: **“DES, AES, and Blowfish are modern block ciphers; here we demo them by turning the passphrase into a binary key, padding the message, and encrypting in ECB mode, then displaying the result as hex.”**
+
+> ⚠️ This demo is **not meant to be secure** (fixed mode, derived keys, toy settings). It is for educational purposes only.
+
+---
+
+### 6. Toy RSA
+
+- **Idea (conceptual)**  
+  - Real RSA uses a modulus \( n = p \times q \) (product of two large primes) and exponents \( e \) (public) and \( d \) (private) with
+    \[
+    d \cdot e \equiv 1 \pmod{\varphi(n)}, \quad \varphi(n) = (p-1)(q-1).
+    \]
+  - Encryption: \( C = P^e \bmod n \)  
+    Decryption: \( P = C^d \bmod n \)
+  - Our **toy implementation** uses small integers so the calculations are easy to understand.
+
+- **In code (`app.py`)**  
+  - `parse_rsa_key(key_str)` reads three integers `p q e`, computes:
+    - \( n = p \cdot q \)  
+    - \( \varphi(n) = (p-1)(q-1) \)  
+    - \( d = e^{-1} \bmod \varphi(n) \) using the existing `modinv`.
+  - `rsa_encrypt(plaintext, key_str)`:
+    - Converts each character to its Unicode code (`ord(ch)`).
+    - Checks that the code is less than \( n \).
+    - Computes \( C = P^e \bmod n \) with Python’s `pow`.
+    - Outputs the ciphertext as space-separated integers.
+  - `rsa_decrypt(ciphertext, key_str)`:
+    - Parses the space-separated integers.
+    - Computes \( P = C^d \bmod n \) for each.
+    - Converts back to characters with `chr`.
+
+You can say: **“Our toy RSA treats each character as a small number and applies the RSA formulas with small primes; it’s only for illustration, not for real security.”**
+
+---
+
 ## How to explain in a presentation (summary)
 
 - **Caesar**:  
@@ -198,3 +260,7 @@ You can say: **“Playfair operates on pairs of letters in a 5×5 key square; en
 
 - **Playfair**:  
   - “Build a 5×5 key table from a word, split the message into pairs, and transform each pair by moving within the table (same row, same column, or rectangle).”
+- **DES / AES / Blowfish**:  
+  - “Turn the passphrase into a binary key, pad the message to a fixed block length, and apply a modern block cipher to each block; we show the result as hex.”  
+- **Toy RSA**:  
+  - “Pick small primes \(p, q\) and an exponent \(e\); compute \(n = p q\) and the inverse \(d\). Encrypt each character as \(c = m^e \bmod n\) and decrypt as \(m = c^d \bmod n\); in practice RSA uses huge primes and better padding.” 
